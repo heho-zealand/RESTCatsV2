@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -6,6 +6,7 @@ using RESTcats.Models;
 using RESTcats.Services;
 using RESTcats.Repositories;
 using System.Text;
+using System.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,7 +29,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(opt =>
 {
-    opt.SwaggerDoc("v2", new OpenApiInfo { Title = "Zealand Cat API", Version = "v2" });
+    opt.SwaggerDoc("v1", new OpenApiInfo { Title = "Zealand Cat API", Version = "v1" });
 
     opt.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
@@ -40,7 +41,7 @@ builder.Services.AddSwaggerGen(opt =>
         Scheme = "Bearer"
     });
 
-    // Kravet om at bruge ovenst�ende definition p� endpoints
+    // Kravet om at bruge ovenstående definition på endpoints
     opt.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -72,7 +73,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 //builder.Services.AddOpenApi();
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
-var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]!);
+var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
 
 builder.Services.AddAuthentication(options =>
 {
@@ -105,13 +106,49 @@ using (var scope = app.Services.CreateScope())
     DbSeeder.SeedUsers(context);
 }
 
-// Configure the HTTP request pipeline.
-//if (app.Environment.IsDevelopment())
-//{
-    app.MapOpenApi();
+// Swagger middleware
+if (app.Environment.IsDevelopment())
+{
     app.UseSwagger();
-    app.UseSwaggerUI();
-//}
+    app.UseSwaggerUI(c =>
+    {
+        c.RoutePrefix = string.Empty; // Swagger på root
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Zealand Cat API v1");
+    });
+}
+else
+{
+    app.UseHttpsRedirection();
+}
+
+
+// Auto-launch Swagger in browser (Development only)
+if (app.Environment.IsDevelopment())
+{
+    _ = Task.Run(async () =>
+    {
+        await Task.Delay(500); // Wait for server to start
+
+        try
+        {
+            var url = app.Urls.FirstOrDefault() ?? "http://localhost:5000";
+
+            // Open browser
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = url,
+                UseShellExecute = true
+            });
+
+            Console.WriteLine($"\n✅ Swagger UI opening at: {url}\n");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Could not auto-launch browser: {ex.Message}");
+            Console.WriteLine("Manual URL: http://localhost:5000");
+        }
+    });
+}
 
 app.UseCors("AllowAll");
 
@@ -120,4 +157,4 @@ app.UseAuthorization();  // Checks "Are you allowed to be here?"
 
 app.MapControllers();
 
-app.Run();
+app.Run();app.Run();

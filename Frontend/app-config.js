@@ -1,5 +1,6 @@
 export const authUrl = "http://localhost:5240/api/Auth/login";
 export const catsUrl = "https://anbo-restcatjwt.azurewebsites.net/api/Cats";
+//export const catsUrl = "https://anbo-restcatjwt.azurewebsites.net/api/Cats";
 export const tokenName = "userInfo";
 
 export function getStoredUserInfo() {
